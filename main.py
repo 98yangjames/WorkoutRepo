@@ -6,14 +6,34 @@ import plotly.express as px
 from dash import dash_table
 from machineLearning import generate_heatmap
 import numpy as np
+import gspread
+from google.oauth2.service_account import Credentials
 
 def convert_pace(pace_float):
     minutes = int(pace_float)  # Get the integer part as minutes
     seconds = int((pace_float - minutes) * 60) 
 
+def get_data_from_google():
+    scopes = [
+    "https://www.googleapis.com/auth/spreadsheets"
+    ]
+    creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+    client = gspread.authorize(creds)
+    sheet_id = "1qLDf_YFvXjH0rcMwyCwNdo47191hA9gEMEj8VWOj7_U"
+    sheet = client.open_by_key(sheet_id)
+    df = pd.DataFrame(sheet.sheet1.get_all_values())
+    df.columns = df.iloc[0]
+    df = df.drop(0)
+    return df
+
+
+
 # Load your data
-df = pd.read_csv('James_Workouts - Workouts.csv')
+df = get_data_from_google()
 df['Duration'] = df['Duration'].astype(int)
+# Replace empty strings with NaN
+df['Distance'] = df['Distance'].replace('', np.nan)
+df['Distance'] = df['Distance'].astype(float)
 df['Date'] = pd.to_datetime(df['Date'])
 df['Month'] = df['Date'].dt.month
 df['Pace'] = df['Duration'] / df['Distance']
@@ -34,27 +54,46 @@ app.layout = html.Div([
         value='Overview', 
         children=[
             dcc.Tab(label = 'Overview', value = 'Overview', children = [
-                html.B(str(round(df.Duration.sum() / 60, 3))+ " Hours Working out since September 2023"),
-                html.Br(),
-                html.B(str(round(df[df['Activity'] == 'Running']['Duration'].sum() / 60, 3)) +  " Hours Running since September 2023"),
-                html.Br(),
-                html.B(str(round(df[df['Activity'] == 'Lifting']['Duration'].sum() / 60, 3))+ " Hours Lifting since September 2023"),
-                html.Br(),
-                html.B(str(round(df[df['Activity'] == 'Basketball']['Duration'].sum() / 60, 3))+ " Hours playing Basketball since September 2023"),
-                html.Br(),
-                html.B(str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].sum() / 60, 3)) + " Hours playing Pickleball since September 2023"),
-                html.Br(),
-                html.B(str(round(df[df['Activity'] == 'Running']['Distance'].mean(), 3)) + " miles on Average when Running"),
-                html.Br(),
-                dcc.Dropdown(
-                    id='year-dropdown',
-                    options=[{'label': 'All', 'value': 'All'}] + [{'label': year, 'value': year} for year in df['Date'].dt.year.unique()],
-                    value='All',  # Default value is "All"
-                    clearable=False
-                ),
-                # Plotly graph
-                dcc.Graph(id='yearly-plot'),
-                dcc.Graph(id = 'yearly-pie')
+            dash_table.DataTable(
+            id='workout-summary-table',
+            columns=[
+                {"name": "Activity", "id": "activity"},
+                {"name": "Hours", "id": "hours"}
+            ],
+            data=[
+                {"activity": "Total Workouts", "hours": str(round(df['Duration'].sum() / 60, 3)) + " Hours"},
+                {"activity": "Running", "hours": str(round(df[df['Activity'] == 'Running']['Duration'].sum() / 60, 3)) + " Hours"},
+                {"activity": "Lifting", "hours": str(round(df[df['Activity'] == 'Lifting']['Duration'].sum() / 60, 3)) + " Hours"},
+                {"activity": "Basketball", "hours": str(round(df[df['Activity'] == 'Basketball']['Duration'].sum() / 60, 3)) + " Hours"},
+                {"activity": "Pickleball (Outdoor)", "hours": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].sum() / 60, 3)) + " Hours"},
+
+            ],
+            style_table={'width': '50%', 'margin': 'auto'},
+            style_cell={'textAlign': 'center'},
+            style_header={'fontWeight': 'bold', 'backgroundColor': 'lightgrey'},
+            style_data_conditional=[
+                {'if': {'column_id': 'activity'}, 'textAlign': 'left'}
+            ]
+            ),
+            dcc.Dropdown(
+                id='year-dropdown',
+                options=[{'label': 'All', 'value': 'All'}] + [{'label': year, 'value': year} for year in df['Date'].dt.year.unique()],
+                value='All',  # Default value is "All"
+                clearable=False,
+                style={
+                    'width': '50%',
+                    'margin': '20px auto',  # Center and add margin around the dropdown
+                    'padding': '10px',
+                    'font-size': '18px',  # Larger font size for readability
+                    'border-radius': '8px',  # Rounded edges
+                    'border': '1px solid lightgrey',  # Subtle border
+                    'background-color': '#f9f9f9',  # Light background to match the page
+                    'text-align': 'center'
+                }
+            ),
+            # Plotly graph
+            dcc.Graph(id='yearly-plot'),
+            dcc.Graph(id = 'yearly-pie')
 
             ]),
             dcc.Tab(label='Scatter Plot', value='Scatter Plot', children=[
@@ -190,24 +229,6 @@ def update_graph(xaxis_column, yaxis_column):
 
 
 
-# # Callback to store the current tab value in the dcc.Store component
-# @app.callback(
-#     Output('current-tab', 'data'),
-#     [Input('tabs', 'value')]
-# )
-# def store_current_tab(tab):
-#     return {'tab': tab}
-
-# # Callback to restore the tab value from the dcc.Store component
-# @app.callback(
-#     Output('tabs', 'value'),
-#     [Input('current-tab', 'data')],
-#     [State('tabs', 'value')]  # To avoid the circular dependency
-# )
-# def restore_current_tab(data, current_tab):
-#     if data is None:
-#         return current_tab
-#     return data.get('tab', current_tab)
 
 # Run the app
 if __name__ == '__main__':
