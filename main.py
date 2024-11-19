@@ -30,6 +30,7 @@ def get_data_from_google():
 
 # Load your data
 df = get_data_from_google()
+
 df['Duration'] = df['Duration'].astype(int)
 # Replace empty strings with NaN
 df['Distance'] = df['Distance'].replace('', np.nan)
@@ -47,8 +48,18 @@ app = dash.Dash(__name__)
 app.layout = html.Div([
     dcc.Store(id='current-tab', data={'tab': 'Scatter Plot'}),  # Store for keeping track of the current tab
     
-    html.H1("James' Workout Endeavors"),
-    
+    html.H1("James' Workout Endeavors", style = {"textAlign": "center"}),
+    html.Img(
+    src="/assets/IMG_8157.png",
+    style={
+        "height": "1000px",  # Adjust height
+        "width": "auto",   # Keep aspect ratio
+        #"float" : "left",
+        "display": "block",
+        "margin": "0 auto",  # Center the image
+    },
+    ),
+    html.Br(),
     dcc.Tabs(
         id='tabs', 
         value='Overview', 
@@ -58,16 +69,55 @@ app.layout = html.Div([
             id='workout-summary-table',
             columns=[
                 {"name": "Activity", "id": "activity"},
-                {"name": "Hours", "id": "hours"}
+                {"name": "Hours", "id": "hours"},
+                {"name": "Average", "id": "average"},
+                {"name": "Number of Times", "id": "occurances"}
             ],
-            data=[
-                {"activity": "Total Workouts", "hours": str(round(df['Duration'].sum() / 60, 3)) + " Hours"},
-                {"activity": "Running", "hours": str(round(df[df['Activity'] == 'Running']['Duration'].sum() / 60, 3)) + " Hours"},
-                {"activity": "Lifting", "hours": str(round(df[df['Activity'] == 'Lifting']['Duration'].sum() / 60, 3)) + " Hours"},
-                {"activity": "Basketball", "hours": str(round(df[df['Activity'] == 'Basketball']['Duration'].sum() / 60, 3)) + " Hours"},
-                {"activity": "Pickleball (Outdoor)", "hours": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].sum() / 60, 3)) + " Hours"},
+            data = [
+                {
+                    "activity": "Total Workouts",
+                    "hours": str(round(df['Duration'].sum() / 60, 3)) + " Hours",
+                    "average": str(round(df['Duration'].mean(), 3)) + " Minutes",
+                    "occurances": str(len(df)),
+                },
+                {
+                    "activity": "Running",
+                    "hours": str(round(df[df['Activity'] == 'Running']['Duration'].sum() / 60, 3)) + " Hours",
+                    "average": str(round(df[df['Activity'] == 'Running']['Duration'].mean(), 3)) + " Minutes",
+                    "occurances": str(len(df[df['Activity'] == 'Running'])),
+                },
+                {
+                    "activity": "Lifting",
+                    "hours": str(round(df[df['Activity'] == 'Lifting']['Duration'].sum() / 60, 3)) + " Hours",
+                    "average": str(round(df[df['Activity'] == 'Lifting']['Duration'].mean(), 3)) + " Minutes",
+                    "occurances": str(len(df[df['Activity'] == 'Lifting'])),
+                },
+                {
+                    "activity": "Basketball",
+                    "hours": str(round(df[df['Activity'] == 'Basketball']['Duration'].sum() / 60, 3)) + " Hours",
+                    "average": str(round(df[df['Activity'] == 'Basketball']['Duration'].mean(), 3)) + " Minutes",
+                    "occurances": str(len(df[df['Activity'] == 'Basketball'])),
+                },
+                {
+                    "activity": "Pickleball",
+                    "hours": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].sum() / 60, 3)) + " Hours",
+                    "average": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].mean(), 3)) + " Minutes",
+                    "occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')])),
+                },
+                {
+                    "activity": "Hiking",
+                    "hours": str(round(df[(df['Activity'] == 'Hiking')]['Duration'].sum() / 60, 3)) + " Hours",
+                    "average": str(round(df[(df['Activity'] == 'Hiking')]['Duration'].mean(), 3)) + " Minutes",
+                    "occurances": str(len(df[(df['Activity'] == 'Hiking')])),
+                },
+                {
+                    "activity": "Tennis",
+                    "hours": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')]['Duration'].sum() / 60, 3)) + " Hours",
+                    "average": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')]['Duration'].mean(), 3)) + " Minutes",
+                    "occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')])),
+                },
+            ],
 
-            ],
             style_table={'width': '50%', 'margin': 'auto'},
             style_cell={'textAlign': 'center'},
             style_header={'fontWeight': 'bold', 'backgroundColor': 'lightgrey'},
@@ -178,7 +228,7 @@ def update_graph_dropdown(selected_year):
         filtered_df = df[df['Date'].dt.year == selected_year]
     
     # Create a Plotly visualization (example: bar chart)
-    fig = px.bar(filtered_df, x='Date', y='Duration', title=f'Values for the year {selected_year}')
+    fig = px.bar(filtered_df, x='Date', y='Duration', title=f'Values for the year {selected_year}', color = 'Activity')
     fig2 = px.pie(filtered_df, names = 'Activity', values = 'Duration', title = f"Distribution of Time per Workout for {selected_year}")
     return fig, fig2
 
