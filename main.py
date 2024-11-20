@@ -8,6 +8,7 @@ from machineLearning import generate_heatmap, generate_linear_regression
 import numpy as np
 import gspread
 from google.oauth2.service_account import Credentials
+from datetime import datetime
 
 def convert_pace(pace_float):
     minutes = int(pace_float)  # Get the integer part as minutes
@@ -38,7 +39,8 @@ df['Distance'] = df['Distance'].astype(float)
 df['Date'] = pd.to_datetime(df['Date'])
 df['Month'] = df['Date'].dt.month
 df['Pace'] = df['Duration'] / df['Distance']
-
+# Get the current year
+current_year = datetime.now().year
 corr_df = pd.read_csv('correlation_matrix.csv')
 
 # Initialize the Dash app
@@ -64,13 +66,15 @@ app.layout = html.Div([
         value='Overview', 
         children=[
             dcc.Tab(label = 'Overview', value = 'Overview', children = [
+            html.B("*Current denotes this year"),
             dash_table.DataTable(
             id='workout-summary-table',
             columns=[
                 {"name": "Activity", "id": "activity"},
                 {"name": "Hours", "id": "hours"},
                 {"name": "Average", "id": "average"},
-                {"name": "Number of Times", "id": "occurances"}
+                {"name": "Total Times (Lifetime)", "id": "occurances"},
+                {"name": "Total Times (Current)", "id" : "current_occurances"}
             ],
             data = [
                 {
@@ -78,44 +82,52 @@ app.layout = html.Div([
                     "hours": str(round(df['Duration'].sum() / 60, 3)) + " Hours",
                     "average": str(round(df['Duration'].mean(), 3)) + " Minutes",
                     "occurances": str(len(df)),
+                    "current_occurances": str(len(df[df['Date'].dt.year == current_year]))
                 },
                 {
                     "activity": "Running",
                     "hours": str(round(df[df['Activity'] == 'Running']['Duration'].sum() / 60, 3)) + " Hours",
                     "average": str(round(df[df['Activity'] == 'Running']['Duration'].mean(), 3)) + " Minutes",
                     "occurances": str(len(df[df['Activity'] == 'Running'])),
+                    "current_occurances": str(len(df[(df['Activity'] == 'Running') & (df['Date'].dt.year == current_year)]))
                 },
                 {
                     "activity": "Lifting",
                     "hours": str(round(df[df['Activity'] == 'Lifting']['Duration'].sum() / 60, 3)) + " Hours",
                     "average": str(round(df[df['Activity'] == 'Lifting']['Duration'].mean(), 3)) + " Minutes",
                     "occurances": str(len(df[df['Activity'] == 'Lifting'])),
+                    "current_occurances": str(len(df[(df['Activity'] == 'Lifting') & (df['Date'].dt.year == current_year)]))
                 },
                 {
                     "activity": "Basketball",
                     "hours": str(round(df[df['Activity'] == 'Basketball']['Duration'].sum() / 60, 3)) + " Hours",
                     "average": str(round(df[df['Activity'] == 'Basketball']['Duration'].mean(), 3)) + " Minutes",
                     "occurances": str(len(df[df['Activity'] == 'Basketball'])),
+                    "current_occurances": str(len(df[(df['Activity'] == 'Basketball') & (df['Date'].dt.year == current_year)]))
                 },
                 {
                     "activity": "Pickleball",
                     "hours": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].sum() / 60, 3)) + " Hours",
                     "average": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].mean(), 3)) + " Minutes",
                     "occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')])),
+                    "current_occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball') & (df['Date'].dt.year == current_year)]))
                 },
                 {
                     "activity": "Hiking",
                     "hours": str(round(df[(df['Activity'] == 'Hiking')]['Duration'].sum() / 60, 3)) + " Hours",
                     "average": str(round(df[(df['Activity'] == 'Hiking')]['Duration'].mean(), 3)) + " Minutes",
                     "occurances": str(len(df[(df['Activity'] == 'Hiking')])),
+                    "current_occurances": str(len(df[(df['Activity'] == 'Hiking') & (df['Date'].dt.year == current_year)]))
                 },
                 {
                     "activity": "Tennis",
                     "hours": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')]['Duration'].sum() / 60, 3)) + " Hours",
                     "average": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')]['Duration'].mean(), 3)) + " Minutes",
                     "occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')])),
+                    "current_occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis') & (df['Date'].dt.year == current_year)]))
                 },
             ],
+
 
             style_table={'width': '50%', 'margin': 'auto'},
             style_cell={'textAlign': 'center'},
@@ -198,7 +210,7 @@ app.layout = html.Div([
 
             dcc.Tab(label='Analysis', value='Analysis', children=[
                 html.Div([
-                    html.H1(str(generate_linear_regression()/60) + " Hours Running predicted for next year"),
+                    html.H1(str(round(generate_linear_regression()/60)) + " Hours Running Predicted for next year"),
                     dcc.Graph(id='heatmap-plot', figure=generate_heatmap(), style={'width': '80%', 'height': '600px'}),
                     dash_table.DataTable(
                         id='dataframe-table',
