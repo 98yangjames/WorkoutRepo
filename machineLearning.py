@@ -3,6 +3,13 @@ from sklearn.preprocessing import LabelEncoder
 import plotly.express as px
 import gspread
 from google.oauth2.service_account import Credentials
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+import calendar
+from datetime import datetime
+
+
 def get_data_from_google():
     scopes = [
     "https://www.googleapis.com/auth/spreadsheets"
@@ -16,6 +23,18 @@ def get_data_from_google():
     df = df.drop(0)
     return df
 
+def generate_linear_regression():
+    df = get_data_from_google()
+    running_df = df[df['Activity'] == 'Running'] 
+    model = LinearRegression()
+    running_df['ordinal'] = range(1, len(running_df) + 1)
+    model.fit(running_df[['ordinal']], running_df[['Distance']])
+    days_in_month = calendar.monthrange(datetime.now().year, datetime.now().month)[1]
+    arr = []
+    for i in range(1, 365):
+        arr.append([i])
+    predicted_value = model.predict(arr)
+    return round(predicted_value.sum())
 
 def generate_heatmap():
     df = get_data_from_google()

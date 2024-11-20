@@ -4,7 +4,7 @@ from dash.dependencies import Input, Output, State
 import pandas as pd
 import plotly.express as px
 from dash import dash_table
-from machineLearning import generate_heatmap
+from machineLearning import generate_heatmap, generate_linear_regression
 import numpy as np
 import gspread
 from google.oauth2.service_account import Credentials
@@ -47,7 +47,6 @@ app = dash.Dash(__name__)
 # Define the layout of the app
 app.layout = html.Div([
     dcc.Store(id='current-tab', data={'tab': 'Scatter Plot'}),  # Store for keeping track of the current tab
-    
     html.H1("James' Workout Endeavors", style = {"textAlign": "center"}),
     html.Img(
     src="/assets/IMG_8157.png",
@@ -199,6 +198,7 @@ app.layout = html.Div([
 
             dcc.Tab(label='Analysis', value='Analysis', children=[
                 html.Div([
+                    html.H1(str(generate_linear_regression()/60) + " Hours Running predicted for next year"),
                     dcc.Graph(id='heatmap-plot', figure=generate_heatmap(), style={'width': '80%', 'height': '600px'}),
                     dash_table.DataTable(
                         id='dataframe-table',
