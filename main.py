@@ -24,8 +24,7 @@ load_dotenv()
 def get_data_from_google():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
     google_credentials = json.loads(os.getenv('MY_JSON'))
-    
-    print(google_credentials['private_key_id'])
+
     creds = Credentials.from_service_account_info(google_credentials, scopes=scopes)
     #creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
     client = gspread.authorize(creds)
@@ -36,7 +35,12 @@ def get_data_from_google():
     df = df.drop(0)
     return df
 # Load your data
-df = get_data_from_google()
+try:
+    df = get_data_from_google()
+except ValueError as e:
+    print("Couldn't get API Data, loading cached data")
+    print('Error here: ', e)
+    df = pd.read_csv('James_Workouts - Workouts.csv')
 
 df['Duration'] = df['Duration'].astype(int)
 # Replace empty strings with NaN
