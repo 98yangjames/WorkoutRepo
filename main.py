@@ -9,17 +9,33 @@ import numpy as np
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+from dotenv import load_dotenv
 import os
 
 def convert_pace(pace_float):
     minutes = int(pace_float)  # Get the integer part as minutes
     seconds = int((pace_float - minutes) * 60) 
 
+
+# Load .env file
+load_dotenv()
+
 def get_data_from_google():
-    scopes = [
-    "https://www.googleapis.com/auth/spreadsheets"
-    ]
-    creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    google_credentials = {
+        "type": os.getenv("TYPE"),
+        "project_id": os.getenv("PROJECT_ID"),
+        "private_key_id": os.getenv("PRIVATE_KEY_ID"),
+        "private_key": os.getenv("PRIVATE_KEY"),
+        "client_email": os.getenv("CLIENT_EMAIL"),
+        "client_id": os.getenv("CLIENT_ID"),
+        "auth_uri": os.getenv("AUTH_URI"),
+        "token_uri": os.getenv("TOKEN_URI"),
+        "auth_provider_x509_cert_url": os.getenv("AUTH_PROVIDER_X509_CERT_URL"),
+        "client_x509_cert_url": os.getenv("CLIENT_X509_CERT_URL"),
+    }
+    print(google_credentials['private_key'])
+    creds = Credentials.from_service_account_info(google_credentials, scopes=scopes)
     client = gspread.authorize(creds)
     sheet_id = "1qLDf_YFvXjH0rcMwyCwNdo47191hA9gEMEj8VWOj7_U"
     sheet = client.open_by_key(sheet_id)
@@ -27,9 +43,6 @@ def get_data_from_google():
     df.columns = df.iloc[0]
     df = df.drop(0)
     return df
-
-
-
 # Load your data
 df = get_data_from_google()
 
