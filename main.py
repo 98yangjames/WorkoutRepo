@@ -9,6 +9,7 @@ import numpy as np
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import os
 
 def convert_pace(pace_float):
     minutes = int(pace_float)  # Get the integer part as minutes
@@ -43,98 +44,68 @@ df['Pace'] = df['Duration'] / df['Distance']
 current_year = datetime.now().year
 corr_df = pd.read_csv('correlation_matrix.csv')
 
+def get_table_data():
+
+    # List of activities and their filters
+    activities = [
+        {"name": "Total Workouts", "filter": lambda df: df},
+        {"name": "Running", "filter": lambda df: df[df['Activity'] == 'Running']},
+        {"name": "Lifting", "filter": lambda df: df[df['Activity'] == 'Lifting']},
+        {"name": "Basketball", "filter": lambda df: df[df['Activity'] == 'Basketball']},
+        {"name": "Pickleball", "filter": lambda df: df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]},
+        {"name": "Hiking", "filter": lambda df: df[df['Activity'] == 'Hiking']},
+        {"name": "Tennis", "filter": lambda df: df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')]}
+    ]
+
+    # Generate data for the table
+    table_data = []
+    for activity in activities:
+        filtered_df = activity["filter"](df)
+        current_year_df = filtered_df[filtered_df['Date'].dt.year == current_year]
+        table_data.append({
+            "activity": activity["name"],
+            "hours": f"{round(filtered_df['Duration'].sum() / 60, 3)} Hours",
+            "average": f"{round(filtered_df['Duration'].mean(), 3) if not filtered_df.empty else 0} Minutes",
+            "occurances": str(len(filtered_df)),
+            "current_occurances": str(len(current_year_df))
+        })
+    return table_data
+# List of image file paths or URLs
+image_folder = "assets"
+image_list = [os.path.join(image_folder, img) for img in os.listdir(image_folder) if img.endswith(('.png', '.jpg', '.jpeg'))]
+
 # Initialize the Dash app
 app = dash.Dash(__name__)
-
+server = app.server
 # Define the layout of the app
 app.layout = html.Div([
     dcc.Store(id='current-tab', data={'tab': 'Scatter Plot'}),  # Store for keeping track of the current tab
     html.H1("James' Workout Endeavors", style = {"textAlign": "center"}),
-    html.Img(
-    src="/assets/IMG_8157.png",
-    style={
-        "height": "1000px",  # Adjust height
-        "width": "auto",   # Keep aspect ratio
-        #"float" : "left",
-        "display": "block",
-        "margin": "0 auto",  # Center the image
-    },
-    ),
+    html.Div([
+        html.Button("◀", id="prev-button", n_clicks=0, style={"fontSize": "24px"}),
+        html.Img(id="slideshow-image", style={"width": "auto", "height": "1000px", "margin": "0 10px"}),
+        html.Button("▶", id="next-button", n_clicks=0, style={"fontSize": "24px"})
+    ], style={"display": "flex", "alignItems": "center", "justifyContent": "center", "gap": "10px"}),
+
+    dcc.Store(id="current-image-index", data=0),  # Track the current image index
     html.Br(),
     dcc.Tabs(
         id='tabs', 
         value='Overview', 
         children=[
             dcc.Tab(label = 'Overview', value = 'Overview', children = [
-            html.B("*Current denotes this year"),
+                   html.B("*Current denotes this year"),
             dash_table.DataTable(
-            id='workout-summary-table',
-            columns=[
-                {"name": "Activity", "id": "activity"},
-                {"name": "Hours", "id": "hours"},
-                {"name": "Average", "id": "average"},
-                {"name": "Total Times (Lifetime)", "id": "occurances"},
-                {"name": "Total Times (Current)", "id" : "current_occurances"}
-            ],
-            data = [
-                {
-                    "activity": "Total Workouts",
-                    "hours": str(round(df['Duration'].sum() / 60, 3)) + " Hours",
-                    "average": str(round(df['Duration'].mean(), 3)) + " Minutes",
-                    "occurances": str(len(df)),
-                    "current_occurances": str(len(df[df['Date'].dt.year == current_year]))
-                },
-                {
-                    "activity": "Running",
-                    "hours": str(round(df[df['Activity'] == 'Running']['Duration'].sum() / 60, 3)) + " Hours",
-                    "average": str(round(df[df['Activity'] == 'Running']['Duration'].mean(), 3)) + " Minutes",
-                    "occurances": str(len(df[df['Activity'] == 'Running'])),
-                    "current_occurances": str(len(df[(df['Activity'] == 'Running') & (df['Date'].dt.year == current_year)]))
-                },
-                {
-                    "activity": "Lifting",
-                    "hours": str(round(df[df['Activity'] == 'Lifting']['Duration'].sum() / 60, 3)) + " Hours",
-                    "average": str(round(df[df['Activity'] == 'Lifting']['Duration'].mean(), 3)) + " Minutes",
-                    "occurances": str(len(df[df['Activity'] == 'Lifting'])),
-                    "current_occurances": str(len(df[(df['Activity'] == 'Lifting') & (df['Date'].dt.year == current_year)]))
-                },
-                {
-                    "activity": "Basketball",
-                    "hours": str(round(df[df['Activity'] == 'Basketball']['Duration'].sum() / 60, 3)) + " Hours",
-                    "average": str(round(df[df['Activity'] == 'Basketball']['Duration'].mean(), 3)) + " Minutes",
-                    "occurances": str(len(df[df['Activity'] == 'Basketball'])),
-                    "current_occurances": str(len(df[(df['Activity'] == 'Basketball') & (df['Date'].dt.year == current_year)]))
-                },
-                {
-                    "activity": "Pickleball",
-                    "hours": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].sum() / 60, 3)) + " Hours",
-                    "average": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]['Duration'].mean(), 3)) + " Minutes",
-                    "occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')])),
-                    "current_occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball') & (df['Date'].dt.year == current_year)]))
-                },
-                {
-                    "activity": "Hiking",
-                    "hours": str(round(df[(df['Activity'] == 'Hiking')]['Duration'].sum() / 60, 3)) + " Hours",
-                    "average": str(round(df[(df['Activity'] == 'Hiking')]['Duration'].mean(), 3)) + " Minutes",
-                    "occurances": str(len(df[(df['Activity'] == 'Hiking')])),
-                    "current_occurances": str(len(df[(df['Activity'] == 'Hiking') & (df['Date'].dt.year == current_year)]))
-                },
-                {
-                    "activity": "Tennis",
-                    "hours": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')]['Duration'].sum() / 60, 3)) + " Hours",
-                    "average": str(round(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')]['Duration'].mean(), 3)) + " Minutes",
-                    "occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')])),
-                    "current_occurances": str(len(df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis') & (df['Date'].dt.year == current_year)]))
-                },
-            ],
-
-
-            style_table={'width': '50%', 'margin': 'auto'},
-            style_cell={'textAlign': 'center'},
-            style_header={'fontWeight': 'bold', 'backgroundColor': 'lightgrey'},
-            style_data_conditional=[
-                {'if': {'column_id': 'activity'}, 'textAlign': 'left'}
-            ]
+                id='workout-summary-table',
+                columns=[
+                    {"name": "Activity", "id": "activity"},
+                    {"name": "Hours", "id": "hours"},
+                    {"name": "Average", "id": "average"},
+                    {"name": "Total Times (Lifetime)", "id": "occurances"},
+                    {"name": "Total Times (Current)", "id": "current_occurances"},
+                    
+                ],
+                data=get_table_data()
             ),
             dcc.Dropdown(
                 id='year-dropdown',
@@ -245,6 +216,30 @@ def update_graph_dropdown(selected_year):
     return fig, fig2
 
 
+## Callbacks
+@app.callback(
+    Output("slideshow-image", "src"),
+    Output("current-image-index", "data"),
+    Input("prev-button", "n_clicks"),
+    Input("next-button", "n_clicks"),
+    State("current-image-index", "data")
+)
+def update_slideshow(prev_clicks, next_clicks, current_index):
+    # Calculate new index based on which button was clicked
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return image_list[current_index], current_index
+    
+    trigger = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if trigger == "prev-button":
+        new_index = (current_index - 1) % len(image_list)  # Wrap around to the last image
+    elif trigger == "next-button":
+        new_index = (current_index + 1) % len(image_list)  # Wrap around to the first image
+    else:
+        new_index = current_index
+    
+    return image_list[new_index], new_index
 
 # Callback to update the scatter plot and DataTables based on user input
 @app.callback(
