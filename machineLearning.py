@@ -8,13 +8,20 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import calendar
 from datetime import datetime
+import json
+from dotenv import load_dotenv
+import os
 
+
+# Load .env file
+load_dotenv()
 
 def get_data_from_google():
-    scopes = [
-    "https://www.googleapis.com/auth/spreadsheets"
-    ]
-    creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    google_credentials = json.loads(os.getenv('MY_JSON'))
+
+    creds = Credentials.from_service_account_info(google_credentials, scopes=scopes)
+    #creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
     client = gspread.authorize(creds)
     sheet_id = "1qLDf_YFvXjH0rcMwyCwNdo47191hA9gEMEj8VWOj7_U"
     sheet = client.open_by_key(sheet_id)

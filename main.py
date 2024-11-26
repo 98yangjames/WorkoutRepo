@@ -21,26 +21,26 @@ def convert_pace(pace_float):
 # Load .env file
 load_dotenv()
 
-# def get_data_from_google():
-#     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-#     google_credentials = json.loads(os.getenv('MY_JSON'))
+def get_data_from_google():
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    google_credentials = json.loads(os.getenv('MY_JSON'))
 
-#     creds = Credentials.from_service_account_info(google_credentials, scopes=scopes)
-#     #creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
-#     client = gspread.authorize(creds)
-#     sheet_id = "1qLDf_YFvXjH0rcMwyCwNdo47191hA9gEMEj8VWOj7_U"
-#     sheet = client.open_by_key(sheet_id)
-#     df = pd.DataFrame(sheet.sheet1.get_all_values())
-#     df.columns = df.iloc[0]
-#     df = df.drop(0)
-#     return df
-# # Load your data
-# try:
-#     df = get_data_from_google()
-# except ValueError as e:
-#     print("Couldn't get API Data, loading cached data")
-#     print('Error here: ', e)
-df = pd.read_csv('James_Workouts - Workouts.csv')
+    creds = Credentials.from_service_account_info(google_credentials, scopes=scopes)
+    #creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+    client = gspread.authorize(creds)
+    sheet_id = "1qLDf_YFvXjH0rcMwyCwNdo47191hA9gEMEj8VWOj7_U"
+    sheet = client.open_by_key(sheet_id)
+    df = pd.DataFrame(sheet.sheet1.get_all_values())
+    df.columns = df.iloc[0]
+    df = df.drop(0)
+    return df
+# Load your data
+try:
+    df = get_data_from_google()
+except ValueError as e:
+    print("Couldn't get API Data, loading cached data")
+    print('Error here: ', e)
+    df = pd.read_csv('James_Workouts - Workouts.csv')
 
 df['Duration'] = df['Duration'].astype(int)
 # Replace empty strings with NaN
