@@ -87,7 +87,7 @@ image_list = [os.path.join(image_folder, img) for img in os.listdir(image_folder
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
-server = app.server
+
 # Define the layout of the app
 app.layout = html.Div([
     dcc.Store(id='current-tab', data={'tab': 'Scatter Plot'}),  # Store for keeping track of the current tab
@@ -296,7 +296,7 @@ def update_graph(xaxis_column, yaxis_column):
     return fig, table_columns, table_data_1, table_columns, table_data_2
 
 
-
+server = app.server
 
 # Run the app
 if __name__ == '__main__':
