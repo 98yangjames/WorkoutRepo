@@ -13,25 +13,10 @@ from dotenv import load_dotenv
 import os
 
 
-# Load .env file
-load_dotenv()
 
-def get_data_from_google():
-    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    google_credentials = json.loads(os.getenv('MY_JSON'))
-
-    creds = Credentials.from_service_account_info(google_credentials, scopes=scopes)
-    #creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
-    client = gspread.authorize(creds)
-    sheet_id = "1qLDf_YFvXjH0rcMwyCwNdo47191hA9gEMEj8VWOj7_U"
-    sheet = client.open_by_key(sheet_id)
-    df = pd.DataFrame(sheet.sheet1.get_all_values())
-    df.columns = df.iloc[0]
-    df = df.drop(0)
-    return df
 
 def generate_linear_regression():
-    df = get_data_from_google()
+    df = pd.read_csv('James_Workouts - Workouts.csv')
     running_df = df[df['Activity'] == 'Running'] 
     model = LinearRegression()
     running_df['ordinal'] = range(1, len(running_df) + 1)
@@ -44,7 +29,7 @@ def generate_linear_regression():
     return round(predicted_value.sum())
 
 def generate_heatmap():
-    df = get_data_from_google()
+    df = pd.read_csv('James_Workouts - Workouts.csv')
 
     le = LabelEncoder()
     df['Duration'] = df['Duration'].astype(int)
