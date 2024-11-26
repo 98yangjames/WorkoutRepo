@@ -7,3 +7,4 @@ protobuf==5.28.3
 scikit_learn==1.5.2
 gunicorn
 python-dotenv
+json
