@@ -7,3 +7,4 @@ protobuf==5.28.3
 python-dotenv==1.0.1
 scikit_learn==1.5.2
 gunicorn
+dash_extensions

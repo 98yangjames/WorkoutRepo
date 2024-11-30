@@ -12,6 +12,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import os
 import json
+import dash_extensions.javascript as dejs
 
 def convert_pace(pace_float):
     minutes = int(pace_float)  # Get the integer part as minutes
@@ -255,33 +256,36 @@ app.layout = html.Div([
                 ])
             ]),
             dcc.Tab(
-                label='Photos', 
-                value='photos', 
+                label='Photos',
+                value='photos',
                 children=[
                     html.Div([
                         html.Button("◀", id="prev-button", n_clicks=0, style={"fontSize": "24px"}),
                         html.Img(
-                            id="slideshow-image", 
+                            id="slideshow-image",
+                            src=image_list[0],  # Initial image
                             style={
-                                "maxWidth": "90%",  # Restrict the image width to 90% of the parent container
-                                "maxHeight": "80vh",  # Restrict the image height to 80% of the viewport height
-                                "width": "auto",     # Maintain aspect ratio
-                                "height": "auto",    # Maintain aspect ratio
-                                "margin": "0 10px"
+                                "maxWidth": "90%",
+                                "maxHeight": "80vh",
+                                "width": "auto",
+                                "height": "auto",
+                                "margin": "0 10px",
+                                "cursor": "grab"  # Change cursor to indicate draggable
                             }
                         ),
                         html.Button("▶", id="next-button", n_clicks=0, style={"fontSize": "24px"})
-                    ], 
+                    ],
                     style={
-                        "display": "flex", 
-                        "alignItems": "center", 
-                        "justifyContent": "center", 
-                        "gap": "10px", 
-                        "flexWrap": "wrap"  # Allow wrapping for smaller screens
+                        "display": "flex",
+                        "alignItems": "center",
+                        "justifyContent": "center",
+                        "gap": "10px",
+                        "flexWrap": "wrap"
                     }),
-                    dcc.Store(id="current-image-index", data=0)  # Track the current image index
+                    dcc.Store(id="current-image-index", data=0),  # Track the current image index
+                    dcc.Store(id="drag-data", data={"startX": None, "endX": None})  # Track drag start and end
                 ]
-            ),
+            )
 
         ]
     ),
@@ -306,29 +310,65 @@ def update_graph_dropdown(selected_year):
     return fig, fig2
 
 
-## Callbacks
-@app.callback(
-    Output("slideshow-image", "src"),
-    Output("current-image-index", "data"),
-    Input("prev-button", "n_clicks"),
-    Input("next-button", "n_clicks"),
-    State("current-image-index", "data")
+app.clientside_callback(
+    """
+    function(_, dragData) {
+        const img = document.getElementById("slideshow-image");
+        if (!img) return dragData;
+
+        img.onmousedown = (e) => {
+            dragData.startX = e.clientX;
+            img.style.cursor = "grabbing";
+        };
+        img.onmouseup = (e) => {
+            dragData.endX = e.clientX;
+            img.style.cursor = "grab";
+        };
+        return dragData;
+    }
+    """,
+    Output("drag-data", "data"),
+    Input("prev-button", "n_clicks"),  # A dummy input to trigger client callback
+    State("drag-data", "data")
 )
-def update_slideshow(prev_clicks, next_clicks, current_index):
-    # Calculate new index based on which button was clicked
+
+# Callback to update image index and image source
+@app.callback(
+    [Output("slideshow-image", "src"),
+     Output("current-image-index", "data")],
+    [Input("prev-button", "n_clicks"),
+     Input("next-button", "n_clicks"),
+     Input("drag-data", "data")],
+    [State("current-image-index", "data")]
+)
+def update_slideshow(prev_clicks, next_clicks, drag_data, current_index):
     ctx = dash.callback_context
     if not ctx.triggered:
         return image_list[current_index], current_index
-    
+
     trigger = ctx.triggered[0]["prop_id"].split(".")[0]
-    
+
+    # Check for button clicks
     if trigger == "prev-button":
-        new_index = (current_index - 1) % len(image_list)  # Wrap around to the last image
+        new_index = (current_index - 1) % len(image_list)
     elif trigger == "next-button":
-        new_index = (current_index + 1) % len(image_list)  # Wrap around to the first image
+        new_index = (current_index + 1) % len(image_list)
+
+    # Check for drag events
+    elif trigger == "drag-data":
+        startX, endX = drag_data.get("startX"), drag_data.get("endX")
+        if startX is not None and endX is not None:
+            if endX - startX > 50:  # Swipe right
+                new_index = (current_index - 1) % len(image_list)
+            elif startX - endX > 50:  # Swipe left
+                new_index = (current_index + 1) % len(image_list)
+            else:
+                new_index = current_index
+        else:
+            new_index = current_index
     else:
         new_index = current_index
-    
+
     return image_list[new_index], new_index
 
 # Callback to update the scatter plot and DataTables based on user input
