@@ -304,6 +304,9 @@ def update_graph_dropdown(selected_year):
     
     # Create a Plotly visualization (example: bar chart)
     fig = px.bar(filtered_df, x='Date', y='Duration', title=f'Values for the year {selected_year}', color = 'Activity')
+    fig.update_layout(
+    autosize=True,  # Allow the graph to resize dynamically
+    )
     fig2 = px.pie(filtered_df, names = 'Activity', values = 'Duration', title = f"Distribution of Time per Workout for {selected_year}")
     return fig, fig2
 
@@ -400,6 +403,9 @@ def update_graph(xaxis_column, yaxis_column):
     else:
         fig = px.scatter(df, x=xaxis_column, y=yaxis_column, title=f'{xaxis_column} vs {yaxis_column}')
     
+    fig.update_layout(
+    autosize=True,  # Allow the graph to resize dynamically
+    )
     return fig
 
 
