@@ -75,10 +75,41 @@ def get_table_data():
         current_year_df = filtered_df[filtered_df['Date'].dt.year == current_year]
         table_data.append({
             "activity": activity["name"],
-            "hours": f"{round(filtered_df['Duration'].sum() / 60, 3)} Hours",
-            "average": f"{round(filtered_df['Duration'].mean(), 3) if not filtered_df.empty else 0} Minutes",
+            "hours": f"{round(filtered_df['Duration'].sum() / 60, 1)} Hours",
+            "average": f"{round(filtered_df['Duration'].mean(), 1) if not filtered_df.empty else 0} Minutes",
             "occurances": str(len(filtered_df)),
             "current_occurances": str(len(current_year_df))
+        })
+    return table_data
+
+def get_predicted_table_data():
+    # Generate predicted data for the table (using a placeholder prediction logic for simplicity)
+    activities = [
+        {"name": "Total Workouts", "filter": lambda df: df},
+        {"name": "Running", "filter": lambda df: df[df['Activity'] == 'Running']},
+        {"name": "Lifting", "filter": lambda df: df[df['Activity'] == 'Lifting']},
+        {"name": "Basketball", "filter": lambda df: df[df['Activity'] == 'Basketball']},
+        {"name": "Pickleball", "filter": lambda df: df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Pickleball')]},
+        {"name": "Hiking", "filter": lambda df: df[df['Activity'] == 'Hiking']},
+        {"name": "Tennis", "filter": lambda df: df[(df['Activity'] == 'Outdoor') & (df['Type'] == 'Tennis')]}
+    ]
+
+    # Example prediction logic
+    prediction_factor = 1.1  # Predict a 10% increase for simplicity
+    table_data = []
+    for activity in activities:
+        filtered_df = activity["filter"](df)
+        predicted_hours = round(filtered_df['Duration'].sum() * prediction_factor / 60, 1)
+        predicted_average = round(filtered_df['Duration'].mean() * prediction_factor, 1) if not filtered_df.empty else 0
+        predicted_occurances = int(len(filtered_df) * prediction_factor)
+        current_year_df = filtered_df[filtered_df['Date'].dt.year == current_year]
+
+        table_data.append({
+            "activity": activity["name"],
+            "hours": f"{predicted_hours} Hours",
+            "average": f"{predicted_average} Minutes",
+            "current_occurances": str(len(current_year_df)),
+            "total_times": str(predicted_occurances)
         })
     return table_data
 # List of image file paths or URLs
@@ -87,18 +118,11 @@ image_list = [os.path.join(image_folder, img) for img in os.listdir(image_folder
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
-
+server = app.server
 # Define the layout of the app
 app.layout = html.Div([
     dcc.Store(id='current-tab', data={'tab': 'Scatter Plot'}),  # Store for keeping track of the current tab
     html.H1("James' Workout Endeavors", style = {"textAlign": "center"}),
-    html.Div([
-        html.Button("◀", id="prev-button", n_clicks=0, style={"fontSize": "24px"}),
-        html.Img(id="slideshow-image", style={"width": "auto", "height": "1000px", "margin": "0 10px"}),
-        html.Button("▶", id="next-button", n_clicks=0, style={"fontSize": "24px"})
-    ], style={"display": "flex", "alignItems": "center", "justifyContent": "center", "gap": "10px"}),
-
-    dcc.Store(id="current-image-index", data=0),  # Track the current image index
     html.Br(),
     dcc.Tabs(
         id='tabs', 
@@ -190,9 +214,21 @@ app.layout = html.Div([
                 ])
             ]),
 
-            dcc.Tab(label='Analysis', value='Analysis', children=[
+            dcc.Tab(label='Future Predictions', value='Analysis', children=[
                 html.Div([
-                    html.H1(str(round(generate_linear_regression()/60)) + " Hours Running Predicted for next year"),
+                    dash_table.DataTable(
+                        id='predicted-summary-table',
+                        columns=[
+                            {"name": "Activity", "id": "activity"},
+                            {"name": "Hours", "id": "hours"},
+                            {"name": "Average", "id": "average"},
+                            {"name": "Total Times (Current)", "id": "current_occurances"},
+                            {"name": "Total Times (Predicted for Next Year)", "id": "total_times"}
+                        ],
+                        data=get_predicted_table_data(),
+                        style_table={'margin': '20px auto', 'width': '80%'},
+                        style_cell={'textAlign': 'center'}
+                    ),
                     dcc.Graph(id='heatmap-plot', figure=generate_heatmap(), style={'width': '80%', 'height': '600px'}),
                     dash_table.DataTable(
                         id='dataframe-table',
@@ -204,6 +240,35 @@ app.layout = html.Div([
                     ),
                 ])
             ]),
+            dcc.Tab(
+                label='Photos', 
+                value='photos', 
+                children=[
+                    html.Div([
+                        html.Button("◀", id="prev-button", n_clicks=0, style={"fontSize": "24px"}),
+                        html.Img(
+                            id="slideshow-image", 
+                            style={
+                                "maxWidth": "90%",  # Restrict the image width to 90% of the parent container
+                                "maxHeight": "80vh",  # Restrict the image height to 80% of the viewport height
+                                "width": "auto",     # Maintain aspect ratio
+                                "height": "auto",    # Maintain aspect ratio
+                                "margin": "0 10px"
+                            }
+                        ),
+                        html.Button("▶", id="next-button", n_clicks=0, style={"fontSize": "24px"})
+                    ], 
+                    style={
+                        "display": "flex", 
+                        "alignItems": "center", 
+                        "justifyContent": "center", 
+                        "gap": "10px", 
+                        "flexWrap": "wrap"  # Allow wrapping for smaller screens
+                    }),
+                    dcc.Store(id="current-image-index", data=0)  # Track the current image index
+                ]
+            ),
+
         ]
     ),
 ])
@@ -285,7 +350,7 @@ def update_graph(xaxis_column, yaxis_column):
         fig = px.bar(df, x=xaxis_column, y=yaxis_column, color='Activity', hover_data=['Activity', 'Date'])
 
     elif xaxis_column == 'Activity' and yaxis_column == 'Duration' or xaxis_column == 'Duration' and yaxis_column == 'Activity':
-        fig = px.scatter(df, x = xaxis_column, y=yaxis_column, hover_data=['Date'])
+        fig = px.scatter(df, x = xaxis_column, y=yaxis_column, hover_data=['Date'], color = yaxis_column)
         y_avg = df[yaxis_column].mean()
         fig.add_hline(y=y_avg, line_dash="dash", annotation_text=f"Average: {y_avg:.2f}", line_color="red")
 
@@ -296,7 +361,7 @@ def update_graph(xaxis_column, yaxis_column):
     return fig, table_columns, table_data_1, table_columns, table_data_2
 
 
-server = app.server
+
 
 # Run the app
 if __name__ == '__main__':

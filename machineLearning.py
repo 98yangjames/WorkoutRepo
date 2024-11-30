@@ -20,13 +20,13 @@ def generate_linear_regression():
     running_df = df[df['Activity'] == 'Running'] 
     model = LinearRegression()
     running_df['ordinal'] = range(1, len(running_df) + 1)
-    model.fit(running_df[['ordinal']], running_df[['Distance']])
+    model.fit(running_df[['ordinal']], running_df[['Duration']])
     days_in_month = calendar.monthrange(datetime.now().year, datetime.now().month)[1]
     arr = []
     for i in range(1, 365):
         arr.append([i])
     predicted_value = model.predict(arr)
-    return round(predicted_value.sum())
+    return round(predicted_value.sum()/len(running_df[['ordinal']]))
 
 def generate_heatmap():
     df = pd.read_csv('James_Workouts - Workouts.csv')
