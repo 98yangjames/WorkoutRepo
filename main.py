@@ -130,9 +130,7 @@ app.layout = html.Div([
         value='Overview', 
         children=[
             dcc.Tab(label = 'Overview', value = 'Overview', children = [
-            html.P("This is the first paragraph. It provides some introductory text."),
-            html.P("This is the second paragraph. It continues the explanation."),
-            html.P("Here is a third paragraph with more details."),
+            html.P("This is my workout page. You're welcome to follow my amazing workouts :)"),
             html.B("*Current denotes this year"),
             dash_table.DataTable(
                 id='workout-summary-table',
