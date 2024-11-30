@@ -129,7 +129,10 @@ app.layout = html.Div([
         value='Overview', 
         children=[
             dcc.Tab(label = 'Overview', value = 'Overview', children = [
-                   html.B("*Current denotes this year"),
+            html.P("This is the first paragraph. It provides some introductory text."),
+            html.P("This is the second paragraph. It continues the explanation."),
+            html.P("Here is a third paragraph with more details."),
+            html.B("*Current denotes this year"),
             dash_table.DataTable(
                 id='workout-summary-table',
                 columns=[
@@ -140,23 +143,34 @@ app.layout = html.Div([
                     {"name": "Total Times (Current)", "id": "current_occurances"},
                     
                 ],
-                data=get_table_data()
+                data=get_table_data(),
+                 style_table={'width': '100%', 'overflowX': 'auto'},  # Full width with horizontal scroll
+                style_cell={'textAlign': 'center', 'padding': '10px'},  # Center text and add padding
+                style_cell_conditional=[
+                    {'if': {'column_id': 'activity'}, 'width': '30%'},  # Activity column gets 30% of the width
+                    {'if': {'column_id': 'hours'}, 'width': '15%'},
+                    {'if': {'column_id': 'average'}, 'width': '15%'},
+                    {'if': {'column_id': 'occurances'}, 'width': '20%'},
+                    {'if': {'column_id': 'current_occurances'}, 'width': '20%'}
+                ],
+                #sort_action='native',
             ),
+            html.Br(),
             dcc.Dropdown(
                 id='year-dropdown',
                 options=[{'label': 'All', 'value': 'All'}] + [{'label': year, 'value': year} for year in df['Date'].dt.year.unique()],
                 value='All',  # Default value is "All"
                 clearable=False,
-                style={
-                    'width': '50%',
-                    'margin': '20px auto',  # Center and add margin around the dropdown
-                    'padding': '10px',
-                    'font-size': '18px',  # Larger font size for readability
-                    'border-radius': '8px',  # Rounded edges
-                    'border': '1px solid lightgrey',  # Subtle border
-                    'background-color': '#f9f9f9',  # Light background to match the page
-                    'text-align': 'center'
-                }
+                # style={
+                #     'width': '50%',
+                #     'margin': '20px auto',  # Center and add margin around the dropdown
+                #     'padding': '10px',
+                #     'font-size': '18px',  # Larger font size for readability
+                #     'border-radius': '8px',  # Rounded edges
+                #     'border': '1px solid lightgrey',  # Subtle border
+                #     'background-color': '#f9f9f9',  # Light background to match the page
+                #     'text-align': 'center'
+                # }
             ),
             # Plotly graph
             dcc.Graph(id='yearly-plot'),
@@ -183,34 +197,34 @@ app.layout = html.Div([
                     ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '20px'}),
                     dcc.Graph(id='scatter-plot'),
 
-                    html.Div([
-                        html.Div(
-                            dash_table.DataTable(
-                                id='selected-columns-table-1',
-                                style_table={'width': '100%', 'margin': 'auto'},
-                                style_cell={'textAlign': 'center'},
-                                style_cell_conditional=[
-                                    {'if': {'column_id': 'x'}, 'width': '20%'},
-                                    {'if': {'column_id': 'y'}, 'width': 'auto'}
-                                ],
-                                sort_action = 'native',
-                            ),
-                            style={'flex': '1', 'padding': '10px'}
-                        ),
-                        html.Div(
-                            dash_table.DataTable(
-                                id='selected-columns-table-2',
-                                style_table={'width': '100%', 'margin': 'auto'},
-                                style_cell={'textAlign': 'center'},
-                                style_cell_conditional=[
-                                    {'if': {'column_id': 'x'}, 'width': '20%'},
-                                    {'if': {'column_id': 'y'}, 'width': 'auto'}
-                                ],
-                                sort_action = 'native',
-                            ),
-                            style={'flex': '1', 'padding': '10px'}
-                        )
-                    ], style={'display': 'flex', 'justify-content': 'space-between'})
+                    # html.Div([
+                    #     html.Div(
+                    #         dash_table.DataTable(
+                    #             id='selected-columns-table-1',
+                    #             style_table={'width': '100%', 'margin': 'auto'},
+                    #             style_cell={'textAlign': 'center'},
+                    #             style_cell_conditional=[
+                    #                 {'if': {'column_id': 'x'}, 'width': '20%'},
+                    #                 {'if': {'column_id': 'y'}, 'width': 'auto'}
+                    #             ],
+                    #             sort_action = 'native',
+                    #         ),
+                    #         style={'flex': '1', 'padding': '10px'}
+                    #     ),
+                    #     html.Div(
+                    #         dash_table.DataTable(
+                    #             id='selected-columns-table-2',
+                    #             style_table={'width': '100%', 'margin': 'auto'},
+                    #             style_cell={'textAlign': 'center'},
+                    #             style_cell_conditional=[
+                    #                 {'if': {'column_id': 'x'}, 'width': '20%'},
+                    #                 {'if': {'column_id': 'y'}, 'width': 'auto'}
+                    #             ],
+                    #             sort_action = 'native',
+                    #         ),
+                    #         style={'flex': '1', 'padding': '10px'}
+                    #     )
+                    # ], style={'display': 'flex', 'justify-content': 'space-between'})
                 ])
             ]),
 
@@ -319,23 +333,12 @@ def update_slideshow(prev_clicks, next_clicks, current_index):
 
 # Callback to update the scatter plot and DataTables based on user input
 @app.callback(
-    [Output('scatter-plot', 'figure'),
-     Output('selected-columns-table-1', 'columns'),
-     Output('selected-columns-table-1', 'data'),
-     Output('selected-columns-table-2', 'columns'),
-     Output('selected-columns-table-2', 'data')],
+    Output('scatter-plot', 'figure'),
     [Input('xaxis-column', 'value'),
      Input('yaxis-column', 'value')]
 )
 def update_graph(xaxis_column, yaxis_column):
-    table_data_1 = df[[xaxis_column, yaxis_column]].iloc[:len(df)//2].to_dict('records')
-    table_data_2 = df[[xaxis_column, yaxis_column]].iloc[len(df)//2:].to_dict('records')
 
-    table_columns = [
-        {"name": xaxis_column, "id": xaxis_column},
-        {"name": yaxis_column, "id": yaxis_column}
-    ]
-    
     fig = px.scatter()
     if xaxis_column == 'Date' and yaxis_column == 'Duration':
         fig = px.scatter(df, x=xaxis_column, y=yaxis_column, trendline='rolling', color='Activity', trendline_options=dict(window=5))
@@ -354,13 +357,12 @@ def update_graph(xaxis_column, yaxis_column):
         y_avg = df[yaxis_column].mean()
         fig.add_hline(y=y_avg, line_dash="dash", annotation_text=f"Average: {y_avg:.2f}", line_color="red")
 
-
+    elif xaxis_column not in df.columns or yaxis_column not in df.columns:
+        return px.scatter(title="Select an X and Y Axis Value")
     else:
-        fig = px.scatter(df, x=xaxis_column, y=yaxis_column, hover_data=['Date'])
+        fig = px.scatter(df, x=xaxis_column, y=yaxis_column, title=f'{xaxis_column} vs {yaxis_column}')
     
-    return fig, table_columns, table_data_1, table_columns, table_data_2
-
-
+    return fig
 
 
 # Run the app
