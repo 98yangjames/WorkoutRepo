@@ -4,7 +4,7 @@ from dash.dependencies import Input, Output, State
 import pandas as pd
 import plotly.express as px
 from dash import dash_table
-from machineLearning import generate_heatmap, generate_linear_regression
+from machineLearning import generate_heatmap, generate_linear_regression, generate_weight, generate_weight_trend
 import numpy as np
 import gspread
 from google.oauth2.service_account import Credentials
@@ -113,6 +113,23 @@ def get_predicted_table_data():
             "total_times": str(predicted_occurances)
         })
     return table_data
+
+def create_data_table(csv_file_path):
+    # Load CSV into a pandas DataFrame
+    df = pd.read_csv(csv_file_path)
+
+    # Return DataTable component
+    return dash_table.DataTable(
+        id='data-table',
+        columns=[{"name": i, "id": i} for i in df.columns],  # Define columns
+        data=df.to_dict('records'),  # Convert DataFrame to dictionary
+        page_size=10,  # Number of rows per page
+        style_table={'overflowX': 'auto'},  # Add horizontal scrolling
+        style_cell={'textAlign': 'left'},  # Align text in cells
+        sort_action = 'native',
+    )
+
+
 # List of image file paths or URLs
 image_folder = "assets"
 image_list = [os.path.join(image_folder, img) for img in os.listdir(image_folder) if img.endswith(('.png', '.jpg', '.jpeg'))]
@@ -226,7 +243,14 @@ app.layout = html.Div([
                     # ], style={'display': 'flex', 'justify-content': 'space-between'})
                 ])
             ]),
-
+            dcc.Tab(label='Weight', value='Weight', children=[
+                html.Div([
+                    dcc.Graph(id='weight-plot', figure=generate_weight(), style={'width': '100%', 'height': '600px'}),
+                    dcc.Graph(id='weight-trend-plot', figure=generate_weight_trend(), style={'width': '100%', 'height': '600px'}),
+                    create_data_table('James_Weight.csv'),
+                ])
+            
+            ]),
             dcc.Tab(label='Future Predictions', value='Analysis', children=[
                 html.Div([
                     dash_table.DataTable(

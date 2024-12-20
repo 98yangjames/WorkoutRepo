@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import plotly.express as px
 import gspread
@@ -12,7 +13,13 @@ import json
 from dotenv import load_dotenv
 import os
 
-
+def load_weight_df():
+    df = pd.read_csv('James_Weight.csv')
+    df['Time'] = pd.to_datetime(df['Time'], format='%m/%d/%Y, %I:%M %p')
+    df['Weight'] = df['Weight'].str.replace('lb', '').astype(float)
+    df['Muscle Mass'] = df['Muscle Mass'].replace('--', np.nan)
+    df['Muscle Mass'] = df['Muscle Mass'].str.replace('lb', '').astype(float)
+    return df
 
 
 def generate_linear_regression():
@@ -27,6 +34,17 @@ def generate_linear_regression():
         arr.append([i])
     predicted_value = model.predict(arr)
     return round(predicted_value.sum()/len(running_df[['ordinal']]))
+
+def generate_weight():
+    df = load_weight_df()
+    fig = px.scatter(df, x='Time', y = 'Weight', color ='Muscle Mass', title='My Weight Progression')
+    return fig
+
+def generate_weight_trend():
+    df = load_weight_df()
+    fig = px.scatter(df, x='Time', y = 'Weight', color ='Weight', title='My Weight Trendline')
+    fig.update_traces(mode='lines+markers')
+    return fig
 
 def generate_heatmap():
     df = pd.read_csv('James_Workouts - Workouts.csv')
