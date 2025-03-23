@@ -21,8 +21,6 @@ def convert_pace(pace_float):
     seconds = int((pace_float - minutes) * 60) 
 
 
-
-
 def get_data_from_google():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
     creds = {}

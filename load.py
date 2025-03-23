@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 LOCAL = True
 dotenv_path = '.env'
+load_dotenv(dotenv_path)
 
 def get_data_from_google():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -26,7 +27,7 @@ def get_data_from_google():
             print("Error: ", e)
     
     client = gspread.authorize(creds)
-    sheet_id = "1qLDf_YFvXjH0rcMwyCwNdo47191hA9gEMEj8VWOj7_U"
+    sheet_id = os.environ.get('sheet_id')
     sheet = client.open_by_key(sheet_id)
     df = pd.DataFrame(sheet.sheet1.get_all_values())
     df.columns = df.iloc[0]
@@ -35,7 +36,7 @@ def get_data_from_google():
 
 def connect_to_sql():
 
-    load_dotenv(dotenv_path)
+    
     conn = pymysql.connect(
         host=os.environ.get("host"),
         user=os.environ.get("user"),
@@ -46,7 +47,7 @@ def connect_to_sql():
     cursor = conn.cursor()
     return cursor
 
-def query_print(query):
+def query(query):
     cursor = connect_to_sql()
     cursor.execute(query)
     for c in cursor.fetchall():
@@ -98,5 +99,6 @@ def updateDB():
     db = 'Workouts'
     rows_inserted = inserting_df[['Date', 'Activity', 'Distance', 'Type', 'Duration']].to_sql(db, con=engine, if_exists='append', index=False)
     print(f"Inserted {rows_inserted} rows into the database: " + db)
+
 
 updateDB()
