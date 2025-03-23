@@ -42,7 +42,7 @@ def generate_weight():
 
 def generate_weight_trend():
     df = load_weight_df()
-    fig = px.scatter(df, x='Time', y = 'Weight', color ='Weight', title='My Weight Trendline')
+    fig = px.scatter(df, x='Time', y = 'Weight', color ='Muscle Mass', title='My Weight Trendline', trendline = 'ols', trendline_options=dict(log_x=True))
     fig.update_traces(mode='lines+markers')
     return fig
 
@@ -69,3 +69,4 @@ def generate_heatmap():
                     title='Correlation Heatmap across Activities')
     
     return heatmap_fig
+

@@ -14,20 +14,29 @@ import os
 import json
 import dash_extensions.javascript as dejs
 
+deploy_locally = True
+
 def convert_pace(pace_float):
     minutes = int(pace_float)  # Get the integer part as minutes
     seconds = int((pace_float - minutes) * 60) 
 
 
-# Load .env file
-load_dotenv()
+
 
 def get_data_from_google():
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    google_credentials = json.loads(os.getenv('MY_JSON'))
-    print(google_credentials)
-    creds = Credentials.from_service_account_info(google_credentials, scopes=scopes)
-    #creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+    creds = {}
+    if deploy_locally:
+        # Load credentials
+        creds = Credentials.from_service_account_file("offline.json", scopes=scopes)
+        print(creds)
+    else:
+        try:
+            google_credentials = json.loads(os.getenv('MY_JSON'))
+            creds = Credentials.from_service_account_info(google_credentials, scopes=scopes)
+        except TypeError as e:
+            print("Error: ", e)
+    
     client = gspread.authorize(creds)
     sheet_id = "1qLDf_YFvXjH0rcMwyCwNdo47191hA9gEMEj8VWOj7_U"
     sheet = client.open_by_key(sheet_id)
@@ -196,7 +205,8 @@ app.layout = html.Div([
             dcc.Tab(label='Scatter Plot', value='Scatter Plot', children=[
                 html.Div([
                     html.Div([
-                        html.B('Select an X-axis and Y-Axis!'),
+                        #html.B('Select an X-axis and Y-Axis'),
+                        
                         dcc.Dropdown(
                             id='xaxis-column',
                             options=[{'label': col, 'value': col} for col in df.columns],
@@ -257,10 +267,10 @@ app.layout = html.Div([
                         id='predicted-summary-table',
                         columns=[
                             {"name": "Activity", "id": "activity"},
-                            {"name": "Hours", "id": "hours"},
-                            {"name": "Average", "id": "average"},
-                            {"name": "Total Times (Current)", "id": "current_occurances"},
-                            {"name": "Total Times (Predicted for Next Year)", "id": "total_times"}
+                            {"name": "Future Hours", "id": "hours"},
+                            {"name": "Future Average", "id": "average"},
+                            {"name": "Total Times (Current Year)", "id": "current_occurances"},
+                            {"name": "Total Times (Total Predicted for Next Year)", "id": "total_times"}
                         ],
                         data=get_predicted_table_data(),
                         style_table={'margin': '20px auto', 'width': '80%'},
@@ -275,6 +285,7 @@ app.layout = html.Div([
                         style_cell={'textAlign': 'center'},
                         sort_action='native',
                     ),
+                    dcc.Graph(id = 'Future-Weight', figure=generate_weight_trend(), style={'width': '80%', 'height': '600px'})
                 ])
             ]),
             dcc.Tab(
@@ -418,8 +429,8 @@ def update_graph(xaxis_column, yaxis_column):
         fig = px.bar(df, x=xaxis_column, y=yaxis_column, color='Activity', hover_data=['Activity', 'Date'])
 
     elif xaxis_column == 'Activity' and yaxis_column == 'Duration' or xaxis_column == 'Duration' and yaxis_column == 'Activity':
-        fig = px.scatter(df, x = xaxis_column, y=yaxis_column, hover_data=['Date'], color = yaxis_column)
-        y_avg = df[yaxis_column].mean()
+        fig = px.scatter(df, x = 'Activity', y='Duration', hover_data=['Date'], color = 'Duration')
+        y_avg = df['Duration'].mean()
         fig.add_hline(y=y_avg, line_dash="dash", annotation_text=f"Average: {y_avg:.2f}", line_color="red")
 
     elif xaxis_column not in df.columns or yaxis_column not in df.columns:
