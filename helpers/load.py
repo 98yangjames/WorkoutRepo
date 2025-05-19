@@ -12,7 +12,7 @@ LOCAL = True
 dotenv_path = '.env'
 load_dotenv(dotenv_path)
 
-def get_data_from_google():
+def get_data_from_google(sheet_id=os.environ.get('sheet_id')):
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
     creds = {}
     if LOCAL:
